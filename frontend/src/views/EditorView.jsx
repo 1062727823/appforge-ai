@@ -5,6 +5,7 @@ import {
   getRunStatus,
   streamRunLogs,
   streamStopLogs,
+  streamCompileLogs,
 } from "../lib/api.js";
 import { bootstrapEditorWorkspace } from "../lib/editorBootstrap.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -98,8 +99,23 @@ export function useEditorControls(activeAppId) {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 
+  function compile() {
+    if (!activeAppId) return;
+    eventSourceRef.current?.close();
+    const lines = [];
+    setResultModal({ title: "编译", lines: [] });
+
+    const sse = streamCompileLogs(activeAppId, {
+      onLog: (text) => { lines.push(text); setResultModal({ title: "编译", lines: [...lines] }); },
+      onStatus: (text) => { lines.push(`[${statusLabels[text] || text}]`); setResultModal({ title: "编译", lines: [...lines] }); },
+      onError: (text) => { lines.push(`[错误] ${text}`); setResultModal({ title: "编译", lines: [...lines] }); },
+      onDone: () => {},
+    });
+    eventSourceRef.current = sse;
+  }
+
   return { running, previewUrl, previewEnabled: Boolean(previewUrl),
-           resultModal, setResultModal, startRun, stopRun, openPreview };
+           resultModal, setResultModal, startRun, stopRun, openPreview, compile };
 }
 
 function ResultModal({ modal, onClose }) {

@@ -60,4 +60,16 @@ public class AppController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/apps/{appId}/ide")
+    public ResponseEntity<?> getIdeUrl(@PathVariable String appId) {
+        var appOpt = appService.findApp(appId);
+        if (appOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        String folder = "/data/appforge/workspaces/" + appId + "/repo";
+        // nginx proxy path
+        String url = "/ide/?folder=" + java.net.URLEncoder.encode(folder, java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok(Map.of("folder", folder, "url", url));
+    }
 }

@@ -5,12 +5,16 @@ AI 驱动的低代码平台 —— 通过 Claude 智能体创建、编辑、部�
 ## 架构
 
 ```
-浏览器 ──REST/SSE──→ Spring Boot API (Java 17) ──HTTP──→ Agent Runner (Node.js)
-    │                        │                                │
-    │ /ide/ iframe           │ Docker 编排                    │ Claude Agent SDK
-    ▼                        ▼                                ▼
-code-server            JSON 文件存储                    Anthropic API
-                      Traefik 反向代理
+浏览器 ──→ nginx(:4173) ──┬── /api/* ──────────→ Spring Boot API (Java 17)
+                          └── /ide/* ──────────→ code-server (Web IDE)
+                                                    │
+                          Spring Boot ──HTTP──→ Agent Runner (Node.js)
+                           │                        │
+                     H2 数据库                 Claude Agent SDK
+                                                    │
+                                              Anthropic API
+
+应用预览：后端通过 docker port 获取容器映射端口，直连 http://127.0.0.1:{port}
 ```
 
 ## 项目结构
@@ -21,10 +25,10 @@ appforge-ai/
 │   ├── pom.xml
 │   └── src/main/java/com/appforge/
 │       ├── config/            # AppForgeProperties, WebConfig
-│       ├── controller/        # App, Task, Run, Deploy, Settings, IDE proxy
+│       ├── controller/        # App, Task, Run, Deploy, Settings
 │       ├── model/             # DTO 和状态模型
 │       ├── service/           # 业务逻辑（14 个服务）
-│       └── store/             # JSON 文件持久化
+│       └── store/             # H2 嵌入式数据库持久化
 ├── frontend/                  # React 19 + Vite
 ├── agent-runner/              # Node.js worker（Claude Agent SDK）
 │   └── src/
@@ -32,9 +36,10 @@ appforge-ai/
 │       ├── run.js             # 任务调度
 │       └── jobs/              # claudeAgentJob, gitSyncJob
 ├── shared/                    # 共享 JS 工具（GitLab 地址校验）
-├── docker/                    # Dockerfiles + code-server 配置
-├── docker-compose.yml         # 完整部署（4 个服务）
-├── docker-compose.dev.yml     # 开发模式（仅基础设施）
+├── docker/                    # Dockerfiles + nginx 配置
+│   ├── nginx/                 # nginx 反向代理配置
+├── docker-compose.yml         # 完整部署（5 个服务）
+├── docker-compose.dev.yml     # 开发模式（仅基础设施 + nginx）
 └── .env.example               # 环境变量模板
 ```
 
@@ -75,23 +80,23 @@ docker compose up -d
 
 # 3. 验证
 docker ps
-# 应看到 4 个容器：api, agent-runner, code-server, traefik
+# 应看到 4 个容器：nginx, api, agent-runner, code-server
 ```
 
 访问地址：**`http://127.0.0.1:4173`**
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| API | 4173 | Spring Boot 后端 + 前端 SPA |
+| nginx | 4173 | 统一入口，反向代理到 API / IDE |
+| API | 4173（内部） | Spring Boot 后端 + 前端 SPA |
 | Agent Runner | 8080（内部） | AI 任务执行器 |
 | code-server | 8080（内部） | Web IDE（浏览器版 VS Code） |
-| Traefik | 8088 / 8089 | 应用预览 / 正式部署反代 |
 
 ---
 
 ### 方式二：混合开发（IDE 调前后端 + Docker 跑基础设施）
 
-前端和后端在 IDEA 中运行方便调试，agent-runner、code-server、traefik 在 Docker 中运行。
+前端和后端在 IDEA 中运行方便调试，agent-runner、code-server 在 Docker 中运行。
 
 ```bash
 # 1. 配置 API Key（在 backend/src/main/resources/application.yml 中已配置）
@@ -106,7 +111,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 # 4. 验证
 docker ps
-# 应看到 3 个容器：agent-runner, code-server, traefik
+# 应看到 3 个容器：nginx, agent-runner, code-server
 ```
 
 **启动后端**（IDEA）：直接运行 `AppForgeApplication`，无需额外 VM 参数。
@@ -122,11 +127,11 @@ npm run dev
 
 | 服务 | 运行位置 | 端口 |
 |------|----------|------|
+| nginx | Docker | 4173（统一入口） |
 | 前端（Vite） | Windows | 5173 |
-| 后端（Spring Boot） | IDEA | 4173 |
+| 后端（Spring Boot） | IDEA | 8181 |
 | Agent Runner | Docker | 8080 |
-| code-server | Docker | 8443 |
-| Traefik | Docker | 8088 / 8089 / 8090 |
+| code-server | Docker | 8080（通过 nginx /ide/ 代理） |
 
 ---
 
@@ -336,4 +341,4 @@ EOF
 | 后端（Spring Boot） | Java | IDEA Debug 断点 |
 | Agent Runner | Node.js | `--inspect` + Chrome DevTools / VS Code attach |
 | code-server 扩展 | JS | 浏览器 F12 + 容器日志 `docker logs -f code-server` |
-| Traefik | Go（三方） | Dashboard `http://127.0.0.1:8090` 查看路由 |
+| nginx | C | 容器日志 `docker logs -f appforge-ai-nginx-1` |

@@ -178,6 +178,15 @@ export function streamRunLogs(appId, { onLog, onStatus, onError, onDone, rebuild
   return { close: () => { aborted = true; es.close(); if (statusPoll) clearInterval(statusPoll); } };
 }
 
+export function streamCompileLogs(appId, { onLog, onStatus, onError, onDone }) {
+  const es = new EventSource(`/api/apps/${encodeURIComponent(appId)}/compile`);
+  es.addEventListener("log", (e) => { const d = JSON.parse(e.data); onLog?.(d.text); });
+  es.addEventListener("status", (e) => { const d = JSON.parse(e.data); onStatus?.(d.text); });
+  es.addEventListener("error", (e) => { try { const d = JSON.parse(e.data); onError?.(d.text); } catch {} });
+  es.onerror = () => { es.close(); onDone?.(); };
+  return { close: () => es.close() };
+}
+
 export function streamStopLogs(appId, { onLog, onStatus, onError, onDone }) {
   let aborted = false;
 

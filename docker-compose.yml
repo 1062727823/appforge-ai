@@ -6,8 +6,8 @@ services:
     image: appforge/api:latest
     env_file:
       - .env
-    ports:
-      - "4173:4173"
+    expose:
+      - "4173"
     environment:
       APPFORGE_DATA_DIR: /data/appforge
       APPFORGE_WEB_ROOT: /app/web
@@ -95,24 +95,18 @@ services:
       - appforge-net
     restart: unless-stopped
 
-  traefik:
-    image: traefik:v3.3
-    command:
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=appforge-runtime
-      - --entrypoints.web.address=:80
-      - --entrypoints.deploy.address=:81
-      - --log.level=INFO
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    image: appforge/nginx:latest
     ports:
-      - "8088:80"
-      - "8089:81"
-      - "8090:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - "4173:80"
     networks:
-      - appforge-runtime
+      - appforge-net
+    depends_on:
+      - api
+      - code-server
     restart: unless-stopped
 
 networks:

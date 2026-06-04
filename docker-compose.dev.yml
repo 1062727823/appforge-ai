@@ -39,11 +39,8 @@ services:
       context: .
       dockerfile: docker/code-server.Dockerfile
     image: appforge/code-server:latest
-    ports:
-      - "8443:8080"
-    environment:
-      APPFORGE_API_URL: http://host.docker.internal:4173
-      APPFORGE_WORKSPACE_ROOT: /data/appforge/workspaces
+    expose:
+      - "8080"
     command:
       - code-server
       - /data/appforge/workspaces
@@ -53,6 +50,10 @@ services:
       - none
       - --disable-telemetry
       - --disable-update-check
+      - --trusted-origins=http://127.0.0.1:5173,http://127.0.0.1:4173
+    environment:
+      APPFORGE_API_URL: http://host.docker.internal:4173
+      APPFORGE_WORKSPACE_ROOT: /data/appforge/workspaces
     volumes:
       - ./storage/appforge:/data/appforge
       - /var/run/docker.sock:/var/run/docker.sock
@@ -62,24 +63,22 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  traefik:
-    image: traefik:v3.3
-    command:
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=appforge-runtime
-      - --entrypoints.web.address=:80
-      - --entrypoints.deploy.address=:81
-      - --log.level=INFO
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    image: appforge/nginx:latest
     ports:
-      - "8088:80"
-      - "8089:81"
-      - "8090:8080"
+      - "4173:80"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
-      - appforge-runtime
+      - appforge-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - agent-runner
+      - code-server
     restart: unless-stopped
 
 networks:

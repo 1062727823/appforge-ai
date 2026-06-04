@@ -153,8 +153,7 @@ public class ClaudeAgentService {
         sb.append("- Do not bind-mount project source in docker-compose.yml; compose runs on the host Docker daemon.\n");
         sb.append("- Preview is opened via the AppForge Traefik gateway (/app/:appId/).\n");
         sb.append("- In docker-compose.yml, use external network with key and name both \"appforge-net\".\n");
-        sb.append("- Add Traefik labels to each service: traefik.enable=true, router rule PathPrefix(\"/app/:appId/\"), and loadbalancer port.\n");
-        sb.append("- Add appforge-runtime external network to services that need preview.\n");
+        sb.append("- Publish the service port to a random host port: ports: [\"0:8080\"] (the 0 means Docker assigns a random host port for preview).\n");
         sb.append("- Do not rely on local npm/python in the IDE container unless runtime is explicitly local.\n\n");
         sb.append("User request:\n");
         sb.append(input.getPrompt());

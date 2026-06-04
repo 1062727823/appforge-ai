@@ -127,4 +127,52 @@ public class RunController {
                 .header("Location", url)
                 .build();
     }
+
+    @GetMapping("/apps/{appId}/compile")
+    public SseEmitter compileProject(@PathVariable String appId) {
+        SseEmitter emitter = new SseEmitter(300_000L);
+        String cwd = store.appWorkspace(appId);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                String mvnCmd = System.getProperty("os.name").toLowerCase().contains("win")
+                        ? "mvn.cmd" : "mvn";
+                ProcessBuilder pb = new ProcessBuilder(mvnCmd, "compile", "-q");
+                pb.directory(new java.io.File(cwd));
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+
+                emitter.send(SseEmitter.event().name("status")
+                        .data(Map.of("text", "compile_started")));
+
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(p.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        emitter.send(SseEmitter.event().name("log")
+                                .data(Map.of("text", line)));
+                    }
+                }
+
+                int rc = p.waitFor();
+                if (rc == 0) {
+                    emitter.send(SseEmitter.event().name("status")
+                            .data(Map.of("text", "compile_done")));
+                } else {
+                    emitter.send(SseEmitter.event().name("status")
+                            .data(Map.of("text", "compile_failed")));
+                    emitter.send(SseEmitter.event().name("error")
+                            .data(Map.of("text", "mvn compile 失败 (exit=" + rc + ")")));
+                }
+                emitter.send(SseEmitter.event().name("status")
+                        .data(Map.of("text", "done")));
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("Compile failed for {}", appId, e);
+                emitter.completeWithError(e);
+            }
+        });
+
+        return emitter;
+    }
 }

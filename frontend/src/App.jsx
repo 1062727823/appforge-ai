@@ -16,10 +16,11 @@ import "./views/editor-view.css";
 
 function EditorToolbar({ editorControls }) {
   const { exitEditor, setView } = useApp();
-  const { openPreview, previewEnabled, running, startRun, stopRun } = editorControls;
+  const { openPreview, previewEnabled, running, startRun, stopRun, compile } = editorControls;
 
   return (
     <div className="editor-top-actions" id="editorTopActions">
+      <button className="toolbar-btn ghost-btn" onClick={compile} type="button">编译</button>
       {running ? (
         <button className="toolbar-btn ghost-btn stop-btn" onClick={stopRun} type="button">
           停止
