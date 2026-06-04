@@ -1,0 +1,126 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: appforge/api:latest
+    env_file:
+      - .env
+    ports:
+      - "4173:4173"
+    environment:
+      APPFORGE_DATA_DIR: /data/appforge
+      APPFORGE_WEB_ROOT: /app/web
+      APPFORGE_DOCKER_VOLUME: appforge-data
+      AGENT_EXECUTOR: docker
+      AGENT_RUNNER_URL: http://agent-runner:8080
+      CODE_SERVER_URL: http://code-server:8080
+      CODE_SERVER_WORKSPACE_ROOT: /data/appforge/workspaces
+      RUNNER_CALLBACK_URL: http://api:4173
+      RUNNER_CALLBACK_TOKEN: ${RUNNER_CALLBACK_TOKEN:-dev-runner-token}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      HOST: 0.0.0.0
+      PORT: 4173
+      APP_GATEWAY_PUBLIC_URL: ${APP_GATEWAY_PUBLIC_URL:-http://127.0.0.1:8088}
+      APP_DEPLOY_GATEWAY_PUBLIC_URL: ${APP_DEPLOY_GATEWAY_PUBLIC_URL:-http://127.0.0.1:8089}
+      APPFORGE_RUNTIME_NETWORK: appforge-runtime
+      TRAEFIK_ENTRYPOINT: web
+      TRAEFIK_DEPLOY_ENTRYPOINT: deploy
+      RUN_IDLE_MS: ${RUN_IDLE_MS:-1800000}
+      RUN_IDLE_SWEEP_MS: ${RUN_IDLE_SWEEP_MS:-60000}
+      APPFORGE_ENV_FILE: /app/.env
+    volumes:
+      - appforge-data:/data/appforge
+      - ./.env:/app/.env:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - appforge-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      agent-runner:
+        condition: service_healthy
+      code-server:
+        condition: service_started
+
+  agent-runner:
+    build:
+      context: .
+      dockerfile: docker/agent-runner.Dockerfile
+    image: appforge/agent-runner:latest
+    env_file:
+      - .env
+    environment:
+      CALLBACK_URL: http://api:4173
+      CALLBACK_TOKEN: ${RUNNER_CALLBACK_TOKEN:-dev-runner-token}
+      RUNNER_PORT: 8080
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      AGENT_POOL_MAX_CONCURRENT: ${AGENT_POOL_MAX_CONCURRENT:-3}
+    volumes:
+      - appforge-data:/data/appforge
+      - ./.env:/app/.env:ro
+    networks:
+      - appforge-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    stop_grace_period: 5s
+
+  code-server:
+    build:
+      context: .
+      dockerfile: docker/code-server.Dockerfile
+    image: appforge/code-server:latest
+    environment:
+      APPFORGE_API_URL: http://api:4173
+      APPFORGE_WORKSPACE_ROOT: /data/appforge/workspaces
+    command:
+      - code-server
+      - /data/appforge/workspaces
+      - --bind-addr
+      - 0.0.0.0:8080
+      - --auth
+      - none
+      - --disable-telemetry
+      - --disable-update-check
+    volumes:
+      - appforge-data:/data/appforge
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - appforge-net
+    restart: unless-stopped
+
+  traefik:
+    image: traefik:v3.3
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=appforge-runtime
+      - --entrypoints.web.address=:80
+      - --entrypoints.deploy.address=:81
+      - --log.level=INFO
+    ports:
+      - "8088:80"
+      - "8089:81"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - appforge-runtime
+    restart: unless-stopped
+
+networks:
+  appforge-net:
+    name: appforge-net
+  appforge-runtime:
+    name: appforge-runtime
+
+volumes:
+  appforge-data:
+    name: appforge-data

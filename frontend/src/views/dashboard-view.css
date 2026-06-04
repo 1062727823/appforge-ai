@@ -1,0 +1,314 @@
+.app-grid {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.app-mgmt-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px 16px 14px;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.app-mgmt-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.app-mgmt-card-accent {
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 3px;
+}
+
+.app-mgmt-card-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.app-mgmt-badges {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.app-mgmt-identity {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.app-mgmt-mark {
+  align-items: center;
+  background: linear-gradient(145deg, #dbeafe 0%, #eff6ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  color: #1d4ed8;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.app-mgmt-title-wrap {
+  min-width: 0;
+}
+
+.app-mgmt-title-wrap h3 {
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-mgmt-subtitle {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+
+.app-mgmt-subtitle code {
+  background: #f1f5f9;
+  border-radius: 6px;
+  color: #334155;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.app-mgmt-desc {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted);
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  overflow: hidden;
+}
+
+.app-mgmt-meta {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.app-mgmt-meta-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: 9px 12px;
+}
+
+.app-mgmt-meta-row dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.app-mgmt-meta-row dd {
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-mgmt-meta-row dd.is-empty {
+  color: var(--subtle);
+  font-family: inherit;
+}
+
+.app-mgmt-card-foot {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.app-mgmt-edit-btn,
+.app-mgmt-info-btn,
+.app-mgmt-delete-btn {
+  min-height: 30px;
+  padding-inline: 12px;
+}
+
+.app-mgmt-info-btn {
+  color: var(--muted);
+  font-size: 12px;
+  margin-right: auto;
+}
+
+.app-mgmt-info-btn:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent-strong);
+}
+
+.app-mgmt-edit-btn {
+  font-size: 12px;
+}
+
+.app-mgmt-delete-btn {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.app-mgmt-delete-btn:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+
+.app-edit-overlay {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.42);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.app-edit-modal {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  max-width: 560px;
+  padding: 20px;
+  width: min(560px, 100%);
+}
+
+.app-edit-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.app-edit-head h3 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.app-edit-head p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.app-edit-close {
+  font-size: 18px;
+  line-height: 1;
+  min-height: 28px;
+  padding-inline: 8px;
+}
+
+.app-edit-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-edit-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-edit-field-wide {
+  grid-column: 1 / -1;
+}
+
+.app-edit-field input,
+.app-edit-field select,
+.app-edit-field textarea {
+  font-weight: 400;
+}
+
+.app-edit-field input.has-error,
+.app-edit-field textarea.has-error {
+  border-color: #fca5a5;
+}
+
+.app-edit-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.app-edit-field-error {
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.app-edit-field input:disabled {
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+
+.app-edit-error {
+  color: #b91c1c;
+  font-size: 12px;
+  margin: 0;
+}
+
+.app-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-edit-field-wide {
+    grid-column: auto;
+  }
+}

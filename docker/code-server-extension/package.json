@@ -1,0 +1,81 @@
+{
+  "name": "appforge-agent",
+  "displayName": "AppForge Agent",
+  "description": "Send the current code context from code-server to AppForge Cursor Agent.",
+  "version": "0.1.0",
+  "publisher": "appforge",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:appforge.agentView",
+    "onCommand:appforge.askCursorAgent",
+    "onCommand:appforge.askSelection",
+    "onCommand:appforge.runApp",
+    "onCommand:appforge.stopApp"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "appforge.askCursorAgent",
+        "title": "AppForge: Ask Cursor Agent"
+      },
+      {
+        "command": "appforge.askSelection",
+        "title": "AppForge: Ask Cursor Agent With Selection"
+      },
+      {
+        "command": "appforge.runApp",
+        "title": "AppForge: Run App"
+      },
+      {
+        "command": "appforge.stopApp",
+        "title": "AppForge: Stop App"
+      }
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "appforge",
+          "title": "CHAT",
+          "icon": "assets/appforge.svg"
+        }
+      ]
+    },
+    "views": {
+      "appforge": [
+        {
+          "id": "appforge.agentView",
+          "name": "Agent",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "appforge.askSelection",
+          "group": "navigation@9",
+          "when": "editorTextFocus"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "appforge.askCursorAgent"
+        },
+        {
+          "command": "appforge.askSelection"
+        },
+        {
+          "command": "appforge.runApp"
+        },
+        {
+          "command": "appforge.stopApp"
+        }
+      ]
+    }
+  }
+}

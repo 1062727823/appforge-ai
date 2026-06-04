@@ -1,0 +1,47 @@
+{
+  "workbench.activityBar.location": "hidden",
+  "workbench.statusBar.visible": false,
+  "workbench.menuBar.visibility": "hidden",
+  "workbench.layoutControl.enabled": false,
+  "workbench.editor.showTabs": "single",
+  "workbench.editor.enablePreview": true,
+  "workbench.startupEditor": "none",
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.secondarySideBar.defaultVisibility": true,
+  "workbench.panel.defaultVisibility": "visible",
+
+  "window.titleBarStyle": "custom",
+  "window.commandCenter": false,
+
+  "explorer.compactFolders": true,
+  "explorer.autoReveal": true,
+  "breadcrumbs.enabled": false,
+
+  "editor.minimap.enabled": false,
+  "editor.glyphMargin": false,
+  "editor.stickyScroll.enabled": false,
+  "editor.renderLineHighlight": "line",
+  "editor.lineNumbers": "on",
+  "editor.scrollbar.verticalScrollbarSize": 8,
+  "editor.scrollbar.horizontalScrollbarSize": 8,
+
+  "git.enabled": false,
+  "debug.toolBarLocation": "hidden",
+  "testing.automaticallyOpenTestResults": "neverOpen",
+
+  "terminal.integrated.enablePersistentSessions": false,
+  "problems.visibility": false,
+
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.ignoreRecommendations": true,
+  "extensions.showRecommendationsOnlyOnDemand": true,
+
+  "update.mode": "none",
+  "telemetry.telemetryLevel": "off",
+  "security.workspace.trust.enabled": false,
+
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000
+}

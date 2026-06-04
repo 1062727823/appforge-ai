@@ -1,0 +1,14 @@
+{
+  "deepseek": {
+    "baseUrl": "https://api.deepseek.com/anthropic",
+    "model": "deepseek-v4-pro"
+  },
+  "runner": {
+    "port": 8080,
+    "maxConcurrent": 3
+  },
+  "callback": {
+    "url": "http://api:4173",
+    "token": "dev-runner-token"
+  }
+}

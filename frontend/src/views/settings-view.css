@@ -1,0 +1,106 @@
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 24px 32px;
+  max-width: 1080px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-header h2 {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.settings-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-loading {
+  color: var(--muted);
+  padding: 24px 0;
+}
+
+.settings-status {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.settings-status.error {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.settings-section h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.settings-section > p {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.settings-field {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.settings-field input {
+  width: 100%;
+}
+
+.settings-field-hint {
+  color: var(--subtle);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-meta {
+  color: var(--subtle);
+  font-size: 11px;
+}
+
+@media (min-width: 960px) {
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-section:last-child {
+    grid-column: 1 / -1;
+  }
+}

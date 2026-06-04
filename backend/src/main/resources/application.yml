@@ -1,0 +1,33 @@
+server:
+  port: ${PORT:4173}
+
+spring:
+  application:
+    name: appforge-api
+  jackson:
+    default-property-inclusion: non_null
+
+appforge:
+  data-dir: ${APPFORGE_DATA_DIR:./storage/appforge}
+  web-root: ${APPFORGE_WEB_ROOT:}
+  code-server-url: ${CODE_SERVER_URL:http://127.0.0.1:8443}
+  agent-runner-url: ${AGENT_RUNNER_URL:http://127.0.0.1:8080}
+  agent-runner-image: ${AGENT_RUNNER_IMAGE:appforge/agent-runner:latest}
+  runner-callback-token: ${RUNNER_CALLBACK_TOKEN:dev-runner-token}
+  runner-callback-url: ${RUNNER_CALLBACK_URL:http://127.0.0.1:4173}
+  gateway-public-url: ${APP_GATEWAY_PUBLIC_URL:http://127.0.0.1:8088}
+  deploy-gateway-public-url: ${APP_DEPLOY_GATEWAY_PUBLIC_URL:http://127.0.0.1:8089}
+  docker-network: ${DOCKER_NETWORK:appforge-net}
+  runtime-network: ${APPFORGE_RUNTIME_NETWORK:appforge-runtime}
+  gitlab-base-url: ${GITLAB_BASE_URL:}
+  gitlab-internal-url: ${GITLAB_INTERNAL_URL:}
+  gitlab-token: ${GITLAB_TOKEN:}
+  deepseek-api-key: ${DEEPSEEK_API_KEY}
+  deepseek-model: ${DEEPSEEK_MODEL:deepseek-v4-pro}
+  agent-memory-limit: ${AGENT_MEMORY_LIMIT:2g}
+  agent-cpu-limit: ${AGENT_CPU_LIMIT:2}
+  log-level: ${LOG_LEVEL:debug}
+
+logging:
+  level:
+    com.appforge: ${LOG_LEVEL:debug}

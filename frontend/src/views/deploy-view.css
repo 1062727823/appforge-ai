@@ -1,0 +1,280 @@
+.deploy-detail-view {
+  display: grid;
+  gap: 12px;
+  max-width: 1280px;
+}
+
+.deploy-detail-header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 16px 18px;
+}
+
+.deploy-detail-back {
+  justify-self: start;
+  padding-inline: 10px;
+}
+
+.deploy-detail-head-main {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.deploy-detail-title h2 {
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 6px 0 4px;
+}
+
+.deploy-detail-summary {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 720px;
+  overflow-wrap: anywhere;
+}
+
+.deploy-detail-actions {
+  flex-shrink: 0;
+}
+
+.deploy-detail-tabs {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.deploy-detail-tab {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 16px;
+}
+
+.deploy-detail-tab.active {
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.deploy-detail-body {
+  min-height: 0;
+}
+
+.deploy-overview-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.deploy-overview-metrics {
+  margin-bottom: 0;
+}
+
+.deploy-overview-panel {
+  margin-top: 0;
+  padding: 16px 18px;
+}
+
+.deploy-overview-panel h3,
+.deploy-history-panel h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.deploy-overview-panel-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.gateway-grid-compact {
+  margin-top: 0;
+}
+
+.deploy-advanced-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  justify-content: space-between;
+  padding: 0;
+  width: 100%;
+}
+
+.deploy-advanced-toggle span:first-child {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.deploy-advanced-toggle-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.deploy-advanced-toggle + .kv-grid {
+  margin-top: 14px;
+}
+
+.deploy-container-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deploy-container-chip {
+  align-items: flex-start;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  min-width: 140px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.deploy-container-chip:hover {
+  border-color: #93c5fd;
+}
+
+.deploy-container-chip strong {
+  font-size: 13px;
+}
+
+.deploy-container-chip span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.deploy-container-chip small {
+  color: var(--muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.deploy-logs-workspace {
+  display: grid;
+  gap: 12px;
+  margin-top: 0;
+  min-height: min(560px, calc(100vh - 240px));
+  padding: 16px 18px;
+}
+
+.deploy-logs-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.deploy-log-subtabs {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.deploy-log-subtab {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 6px 12px;
+}
+
+.deploy-log-subtab.active {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.deploy-logs-panel-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.deploy-logs-panel-shell .deploy-log-react,
+.deploy-logs-panel-shell .container-logs-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-top: 0;
+  min-height: 0;
+}
+
+.deploy-logs-panel-shell .deploy-log-lazylog-shell,
+.deploy-logs-panel-shell .container-log-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.deploy-logs-panel-shell .deploy-log-lazylog-shell .react-lazylog {
+  flex: 1;
+  min-height: 420px;
+}
+
+.deploy-history-panel {
+  margin-top: 0;
+  padding: 16px 18px;
+}
+
+.deploy-history-table {
+  margin-top: 0;
+}
+
+.deploy-history-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.container-logs-section.compact .container-log-tabs {
+  margin-bottom: 8px;
+}
+
+.container-logs-section.compact .container-log-tab {
+  min-width: 108px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 900px) {
+  .deploy-detail-head-main {
+    flex-direction: column;
+  }
+
+  .deploy-detail-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .deploy-logs-workspace {
+    min-height: 480px;
+  }
+}

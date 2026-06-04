@@ -1,0 +1,89 @@
+# 开发环境：仅启动基础设施服务，前端和后端在 IDE 中运行
+services:
+  # 覆盖 api —— 开发时不启动
+  api:
+    profiles:
+      - prod
+
+  agent-runner:
+    build:
+      context: .
+      dockerfile: docker/agent-runner.Dockerfile
+    image: appforge/agent-runner:latest
+    ports:
+      - "8080:8080"
+    environment:
+      CALLBACK_URL: http://host.docker.internal:4173
+      CALLBACK_TOKEN: dev-runner-token
+      RUNNER_PORT: 8080
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      AGENT_POOL_MAX_CONCURRENT: ${AGENT_POOL_MAX_CONCURRENT:-3}
+    volumes:
+      - ./storage/appforge:/data/appforge
+      - ./.env:/app/.env:ro
+    networks:
+      - appforge-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    stop_grace_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  code-server:
+    build:
+      context: .
+      dockerfile: docker/code-server.Dockerfile
+    image: appforge/code-server:latest
+    ports:
+      - "8443:8080"
+    environment:
+      APPFORGE_API_URL: http://host.docker.internal:4173
+      APPFORGE_WORKSPACE_ROOT: /data/appforge/workspaces
+    command:
+      - code-server
+      - /data/appforge/workspaces
+      - --bind-addr
+      - 0.0.0.0:8080
+      - --auth
+      - none
+      - --disable-telemetry
+      - --disable-update-check
+    volumes:
+      - ./storage/appforge:/data/appforge
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - appforge-net
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  traefik:
+    image: traefik:v3.3
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=appforge-runtime
+      - --entrypoints.web.address=:80
+      - --entrypoints.deploy.address=:81
+      - --log.level=INFO
+    ports:
+      - "8088:80"
+      - "8089:81"
+      - "8090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - appforge-runtime
+    restart: unless-stopped
+
+networks:
+  appforge-net:
+    name: appforge-net
+  appforge-runtime:
+    name: appforge-runtime

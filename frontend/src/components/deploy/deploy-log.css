@@ -1,0 +1,96 @@
+.deploy-log-react {
+  margin-top: 12px;
+}
+
+.deploy-log-react-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.deploy-log-lazylog-shell {
+  border: 1px solid #1e293b;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.deploy-log-lazylog-shell .react-lazylog {
+  background: #0b1220 !important;
+  font-family: "JetBrains Mono", monospace !important;
+  font-size: 12px !important;
+}
+
+.deploy-log-lazylog-shell .react-lazylog-searchbar {
+  background: #111827 !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.deploy-log-lazylog-shell .react-lazylog-searchbar-input {
+  background: #0b1220 !important;
+  border: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.container-logs-section {
+  margin-top: 12px;
+}
+
+.container-log-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.container-log-tab {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.container-log-tab.active {
+  border-color: #60a5fa;
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+
+.container-log-tab-label {
+  font-weight: 600;
+}
+
+.container-log-tab small {
+  color: var(--muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.container-log-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.container-log-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.container-log-panel {
+  margin-top: 0;
+}
+
+.panel-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0 0;
+}

@@ -1,0 +1,53 @@
+[
+  { "key": "f1", "command": "-workbench.action.showCommands" },
+  { "key": "ctrl+shift+p", "command": "-workbench.action.showCommands" },
+  { "key": "ctrl+p", "command": "-workbench.action.quickOpen" },
+  { "key": "ctrl+shift+n", "command": "-workbench.action.newWindow" },
+  { "key": "ctrl+shift+w", "command": "-workbench.action.closeWindow" },
+  { "key": "ctrl+n", "command": "-workbench.action.files.newUntitledFile" },
+  { "key": "ctrl+o", "command": "-workbench.action.files.openFile" },
+  { "key": "ctrl+k ctrl+o", "command": "-workbench.action.files.openFolder" },
+
+  { "key": "ctrl+shift+d", "command": "-workbench.view.debug" },
+  { "key": "f5", "command": "-workbench.action.debug.start" },
+  { "key": "shift+f5", "command": "-workbench.action.debug.stop" },
+  { "key": "f9", "command": "-editor.debug.action.toggleBreakpoint" },
+
+  { "key": "ctrl+shift+g", "command": "-workbench.view.scm" },
+  { "key": "ctrl+shift+x", "command": "-workbench.extensions.action.showInstalledExtensions" },
+
+  { "key": "ctrl+,", "command": "-workbench.action.openSettings" },
+  { "key": "ctrl+k ctrl+s", "command": "-workbench.action.openGlobalKeybindings" },
+  { "key": "ctrl+k ctrl+p", "command": "-workbench.action.showCommands" },
+
+  { "key": "ctrl+shift+m", "command": "-workbench.actions.view.problems" },
+  { "key": "ctrl+shift+u", "command": "-workbench.action.output.toggleOutput" },
+  { "key": "ctrl+b", "command": "-workbench.action.toggleSidebarVisibility" },
+  { "key": "ctrl+shift+b", "command": "-workbench.action.tasks.build" },
+
+  { "key": "ctrl+\\", "command": "-workbench.action.splitEditor" },
+  { "key": "ctrl+k ctrl+w", "command": "-workbench.action.closeAllEditors" },
+  { "key": "ctrl+w", "command": "-workbench.action.closeActiveEditor" },
+  { "key": "ctrl+shift+t", "command": "-workbench.action.reopenClosedEditor" },
+  { "key": "ctrl+tab", "command": "-workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup" },
+  { "key": "ctrl+pageup", "command": "-workbench.action.openPreviousEditor" },
+  { "key": "ctrl+pagedown", "command": "-workbench.action.openNextEditor" },
+
+  { "key": "ctrl+shift+e", "command": "-workbench.view.explorer" },
+  { "key": "ctrl+shift+f", "command": "-workbench.action.findInFiles" },
+  { "key": "ctrl+shift+h", "command": "-workbench.action.replaceInFiles" },
+  { "key": "ctrl+shift+j", "command": "-workbench.action.search.toggleQueryDetails" },
+
+  { "key": "ctrl+shift+o", "command": "-workbench.action.gotoSymbol" },
+  { "key": "ctrl+t", "command": "-workbench.action.showAllSymbols" },
+  { "key": "f12", "command": "-editor.action.revealDefinition" },
+  { "key": "shift+f12", "command": "-editor.action.goToReferences" },
+  { "key": "alt+f12", "command": "-editor.action.peekDefinition" },
+
+  { "key": "ctrl+k z", "command": "-workbench.action.toggleZenMode" },
+  { "key": "f11", "command": "-workbench.action.toggleFullScreen" },
+  { "key": "ctrl+k ctrl+q", "command": "-workbench.action.quit" },
+
+  { "key": "ctrl+shift+v", "command": "-markdown.showPreview" },
+  { "key": "ctrl+k v", "command": "-markdown.showPreviewToSide" }
+]

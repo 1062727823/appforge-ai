@@ -1,0 +1,9 @@
+{
+  "name": "@appforge/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./gitlab.js": "./gitlab.js"
+  }
+}
