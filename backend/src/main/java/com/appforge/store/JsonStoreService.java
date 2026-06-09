@@ -6,15 +6,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+/**
+ * H2-backed persistence. Every read goes directly to H2 (no in-memory state mirror).
+ * Write methods issue targeted INSERT / UPDATE / DELETE.
+ */
 @Slf4j
 @Service
 public class JsonStoreService {
@@ -23,12 +25,7 @@ public class JsonStoreService {
     private final JdbcTemplate db;
     private final ObjectMapper mapper;
 
-    @Getter
-    private AppState state;
-
-    private static final TypeReference<List<Map<String, String>>> LIST_MAP_STR_TYPE =
-            new TypeReference<>() {};
-    private static final TypeReference<Map<String, Object>> MAP_OBJ_TYPE =
+    private static final TypeReference<LinkedHashMap<String, Object>> PAYLOAD_TYPE =
             new TypeReference<>() {};
 
     public JsonStoreService(AppForgeProperties props, JdbcTemplate db) {
@@ -39,47 +36,137 @@ public class JsonStoreService {
 
     @PostConstruct
     public void ensureStore() {
-        loadState();
-        log.info("Store initialized (H2), apps={} tasks={} events={}",
-                state.getApps().size(), state.getTasks().size(), state.getEvents().size());
+        log.info("Store initialized (H2 direct access)");
     }
 
-    private void loadState() {
-        List<App> apps = db.query("SELECT * FROM apps", APP_MAPPER);
-        List<Task> tasks = db.query("SELECT * FROM tasks", TASK_MAPPER);
-        List<TaskEvent> events = db.query("SELECT * FROM task_events", EVENT_MAPPER);
-        List<DeployAppEntry> deploys = db.query("SELECT * FROM deploy_apps", DEPLOY_MAPPER);
+    // ── workspace path (not DB) ──────────────────────────────────────
 
-        List<Map<String, String>> teams = listMapFromDb("teams");
-        List<Map<String, String>> visibilityOptions = listMapFromDb("visibilityOptions");
-        List<Map<String, String>> deployMethods = listMapFromDb("deployMethods");
-        Map<String, Object> settings = mapFromDb();
-
-        this.state = AppState.builder()
-                .apps(new ArrayList<>(apps))
-                .tasks(new ArrayList<>(tasks))
-                .events(new ArrayList<>(events))
-                .deployApps(new ArrayList<>(deploys))
-                .teams(teams)
-                .visibilityOptions(visibilityOptions)
-                .deployMethods(deployMethods)
-                .settings(settings)
-                .build();
+    public String appWorkspace(String appId) {
+        return props.getAppWorkspace(appId);
     }
 
-    private List<Map<String, String>> listMapFromDb(String key) {
-        List<String> rows = db.query(
-                "SELECT config_value FROM platform_config WHERE config_key = ?",
-                (rs, rowNum) -> rs.getString("config_value"), key);
-        if (rows.isEmpty()) return new ArrayList<>();
-        try {
-            return mapper.readValue(rows.get(0), LIST_MAP_STR_TYPE);
-        } catch (JsonProcessingException e) {
-            return new ArrayList<>();
-        }
+    // ==================================================================
+    //  Apps
+    // ==================================================================
+
+    public List<App> listApps() {
+        return db.query("SELECT * FROM apps ORDER BY created_at DESC", APP_MAPPER);
     }
 
-    private Map<String, Object> mapFromDb() {
+    public Optional<App> findApp(String appId) {
+        List<App> list = db.query("SELECT * FROM apps WHERE id = ?", APP_MAPPER, appId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    public void insertApp(App app) {
+        db.update(
+                "INSERT INTO apps (id,name,slug,description,repo_url,team_name,visibility,deploy_method,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                app.getId(), app.getName(), app.getSlug(),
+                nullToEmpty(app.getDescription()), nullToEmpty(app.getRepoUrl()),
+                nullToEmpty(app.getTeamName()), nullToEmpty(app.getVisibility(), "private"),
+                nullToEmpty(app.getDeployMethod(), "docker"), nullToEmpty(app.getStatus(), "ready"),
+                app.getCreatedAt(), app.getUpdatedAt());
+    }
+
+    public int updateApp(App app) {
+        return db.update(
+                "UPDATE apps SET name=?, slug=?, description=?, repo_url=?, team_name=?, visibility=?, deploy_method=?, status=?, updated_at=? WHERE id=?",
+                app.getName(), app.getSlug(),
+                nullToEmpty(app.getDescription()), nullToEmpty(app.getRepoUrl()),
+                nullToEmpty(app.getTeamName()), nullToEmpty(app.getVisibility(), "private"),
+                nullToEmpty(app.getDeployMethod(), "docker"), nullToEmpty(app.getStatus(), "ready"),
+                app.getUpdatedAt(), app.getId());
+    }
+
+    public int deleteApp(String appId) {
+        return db.update("DELETE FROM apps WHERE id = ?", appId);
+    }
+
+    // ==================================================================
+    //  Tasks
+    // ==================================================================
+
+    public List<Task> listTasks() {
+        return db.query("SELECT * FROM tasks ORDER BY created_at DESC", TASK_MAPPER);
+    }
+
+    public List<Task> listTasksByAppId(String appId) {
+        return db.query("SELECT * FROM tasks WHERE app_id = ? ORDER BY created_at DESC", TASK_MAPPER, appId);
+    }
+
+    public Optional<Task> findTask(String taskId) {
+        List<Task> list = db.query("SELECT * FROM tasks WHERE id = ?", TASK_MAPPER, taskId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    public void insertTask(Task task) {
+        db.update(
+                "INSERT INTO tasks (id,app_id,type,status,prompt,created_at,completed_at) VALUES (?,?,?,?,?,?,?)",
+                task.getId(), task.getAppId(), task.getType(), task.getStatus(),
+                nullToEmpty(task.getPrompt()), task.getCreatedAt(), task.getCompletedAt());
+    }
+
+    public int updateTaskStatus(String taskId, String status, String completedAt) {
+        return db.update("UPDATE tasks SET status=?, completed_at=? WHERE id=?", status, completedAt, taskId);
+    }
+
+    public int deleteTask(String taskId) {
+        return db.update("DELETE FROM tasks WHERE id = ?", taskId);
+    }
+
+    public int deleteTasksByAppId(String appId) {
+        return db.update("DELETE FROM tasks WHERE app_id = ?", appId);
+    }
+
+    // ==================================================================
+    //  TaskEvents
+    // ==================================================================
+
+    public List<TaskEvent> listEvents() {
+        return db.query("SELECT * FROM task_events ORDER BY created_at ASC", EVENT_MAPPER);
+    }
+
+    public List<TaskEvent> listEventsByTaskId(String taskId) {
+        return db.query("SELECT * FROM task_events WHERE task_id = ? ORDER BY created_at ASC", EVENT_MAPPER, taskId);
+    }
+
+    public void insertEvent(TaskEvent event) {
+        db.update("INSERT INTO task_events (id,task_id,type,payload,created_at) VALUES (?,?,?,?,?)",
+                event.getId(), event.getTaskId(), event.getType(),
+                toJson(event.getPayload()), event.getCreatedAt());
+    }
+
+    public int deleteEventsByTaskId(String taskId) {
+        return db.update("DELETE FROM task_events WHERE task_id = ?", taskId);
+    }
+
+    // ==================================================================
+    //  DeployApps
+    // ==================================================================
+
+    public List<DeployAppEntry> listDeployApps() {
+        return db.query("SELECT * FROM deploy_apps ORDER BY added_at DESC", DEPLOY_MAPPER);
+    }
+
+    public void insertDeployApp(DeployAppEntry entry) {
+        db.update(
+                "INSERT INTO deploy_apps (app_id,name,slug,team_name,deploy_method,status,added_at) VALUES (?,?,?,?,?,?,?)",
+                entry.getAppId(), entry.getName(), entry.getSlug(),
+                nullToEmpty(entry.getTeamName(), "Default"),
+                nullToEmpty(entry.getDeployMethod(), "docker"),
+                nullToEmpty(entry.getStatus(), "pending"),
+                entry.getAddedAt());
+    }
+
+    public int deleteDeployApp(String appId) {
+        return db.update("DELETE FROM deploy_apps WHERE app_id = ?", appId);
+    }
+
+    // ==================================================================
+    //  Settings
+    // ==================================================================
+
+    public Map<String, Object> loadSettings() {
         List<Map<String, Object>> rows = db.query(
                 "SELECT setting_key, setting_value FROM settings",
                 (rs, rowNum) -> Map.of(
@@ -92,72 +179,27 @@ public class JsonStoreService {
         return result;
     }
 
-    public void saveStore() {
-        // Persist all mutable state to H2
-        db.update("DELETE FROM apps");
-        for (App a : state.getApps()) {
-            db.update("INSERT INTO apps VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                    a.getId(), a.getName(), a.getSlug(),
-                    a.getDescription() != null ? a.getDescription() : "",
-                    a.getRepoUrl() != null ? a.getRepoUrl() : "",
-                    a.getTeamName() != null ? a.getTeamName() : "Default",
-                    a.getVisibility() != null ? a.getVisibility() : "private",
-                    a.getDeployMethod() != null ? a.getDeployMethod() : "docker",
-                    a.getStatus() != null ? a.getStatus() : "ready",
-                    a.getCreatedAt(), a.getUpdatedAt());
-        }
-
-        db.update("DELETE FROM tasks");
-        for (Task t : state.getTasks()) {
-            db.update("INSERT INTO tasks VALUES (?,?,?,?,?,?,?)",
-                    t.getId(), t.getAppId(), t.getType(), t.getStatus(),
-                    t.getPrompt() != null ? t.getPrompt() : "",
-                    t.getCreatedAt(), t.getCompletedAt());
-        }
-
-        db.update("DELETE FROM task_events");
-        for (TaskEvent e : state.getEvents()) {
-            db.update("INSERT INTO task_events VALUES (?,?,?,?,?)",
-                    e.getId(), e.getTaskId(), e.getType(),
-                    toJson(e.getPayload()), e.getCreatedAt());
-        }
-
-        db.update("DELETE FROM deploy_apps");
-        for (DeployAppEntry d : state.getDeployApps()) {
-            db.update("INSERT INTO deploy_apps VALUES (?,?,?,?,?,?,?)",
-                    d.getAppId(), d.getName(), d.getSlug(),
-                    d.getTeamName() != null ? d.getTeamName() : "Default",
-                    d.getDeployMethod() != null ? d.getDeployMethod() : "docker",
-                    d.getStatus() != null ? d.getStatus() : "deploying",
-                    d.getAddedAt());
-        }
-
-        if (state.getTeams() != null) {
-            upsertConfig("teams", toJson(state.getTeams()));
-        }
-        if (state.getVisibilityOptions() != null) {
-            upsertConfig("visibilityOptions", toJson(state.getVisibilityOptions()));
-        }
-        if (state.getDeployMethods() != null) {
-            upsertConfig("deployMethods", toJson(state.getDeployMethods()));
-        }
-
-        if (state.getSettings() != null) {
-            db.update("DELETE FROM settings");
-            for (var entry : state.getSettings().entrySet()) {
-                db.update("INSERT INTO settings VALUES (?,?)",
-                        entry.getKey(), String.valueOf(entry.getValue()));
-            }
+    public void saveSetting(String key, String value) {
+        int updated = db.update("UPDATE settings SET setting_value = ? WHERE setting_key = ?", value, key);
+        if (updated == 0) {
+            db.update("INSERT INTO settings (setting_key, setting_value) VALUES (?,?)", key, value);
         }
     }
 
-    private void upsertConfig(String key, String value) {
-        int updated = db.update(
-                "UPDATE platform_config SET config_value = ? WHERE config_key = ?",
-                value, key);
-        if (updated == 0) {
-            db.update("INSERT INTO platform_config VALUES (?,?)", key, value);
-        }
+    public int clearSettings() {
+        return db.update("DELETE FROM settings");
+    }
+
+    // ==================================================================
+    //  helpers
+    // ==================================================================
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
+    }
+
+    private String nullToEmpty(String s, String defaultVal) {
+        return s == null || s.isBlank() ? defaultVal : s;
     }
 
     private String toJson(Object obj) {
@@ -168,17 +210,10 @@ public class JsonStoreService {
         }
     }
 
-    // Keep lock API as no-ops for backward compatibility (H2 handles concurrency)
-    public void readLock() {}
-    public void readUnlock() {}
-    public void writeLock() {}
-    public void writeUnlock() {}
+    // ==================================================================
+    //  RowMappers
+    // ==================================================================
 
-    public String appWorkspace(String appId) {
-        return props.getAppWorkspace(appId);
-    }
-
-    // Row mappers
     private static final RowMapper<App> APP_MAPPER = (rs, rowNum) -> App.builder()
             .id(rs.getString("id"))
             .name(rs.getString("name"))

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,13 +31,7 @@ public class TaskEventService {
                 .createdAt(id.now())
                 .build();
 
-        store.writeLock();
-        try {
-            store.getState().getEvents().add(event);
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
+        store.insertEvent(event);
 
         // push to SSE clients
         List<SseEmitter> emitters = clients.get(taskId);
@@ -71,22 +64,17 @@ public class TaskEventService {
         emitter.onTimeout(() -> removeClient(taskId, emitter));
         emitter.onError(e -> removeClient(taskId, emitter));
 
-        // replay existing events
-        store.readLock();
-        try {
-            store.getState().getEvents().stream()
-                    .filter(e -> e.getTaskId().equals(taskId))
-                    .forEach(e -> {
-                        try {
-                            emitter.send(SseEmitter.event()
-                                    .name(e.getType())
-                                    .data(e.getPayload()));
-                        } catch (IOException ex) {
-                            emitter.completeWithError(ex);
-                        }
-                    });
-        } finally {
-            store.readUnlock();
+        // replay existing events from DB
+        List<TaskEvent> existing = store.listEventsByTaskId(taskId);
+        for (TaskEvent e : existing) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name(e.getType())
+                        .data(e.getPayload()));
+            } catch (IOException ex) {
+                emitter.completeWithError(ex);
+                break;
+            }
         }
 
         return emitter;

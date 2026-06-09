@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -30,19 +29,8 @@ public class ClaudeAgentService {
     private final Set<String> cancelledTasks = ConcurrentHashMap.newKeySet();
 
     public Task startAgentRun(String appId, AgentRunRequest input) {
-        Optional<App> appOpt;
-        store.readLock();
-        try {
-            appOpt = store.getState().getApps().stream()
-                    .filter(a -> a.getId().equals(appId))
-                    .findFirst();
-        } finally {
-            store.readUnlock();
-        }
-
-        if (appOpt.isEmpty()) {
-            throw new IllegalArgumentException("App not found: " + appId);
-        }
+        App app = store.findApp(appId)
+                .orElseThrow(() -> new IllegalArgumentException("App not found: " + appId));
 
         String apiKey = props.getDeepseekApiKey();
         if (apiKey == null || apiKey.isBlank()) {
@@ -59,15 +47,8 @@ public class ClaudeAgentService {
                 .completedAt(null)
                 .build();
 
-        store.writeLock();
-        try {
-            store.getState().getTasks().add(task);
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
-
-        runAgentTaskAsync(appOpt.get(), input, task.getId());
+        store.insertTask(task);
+        runAgentTaskAsync(app, input, task.getId());
         return task;
     }
 
@@ -99,11 +80,6 @@ public class ClaudeAgentService {
         // always dispatch to Docker runner (no local mode)
         dockerExecutor.dispatchRunnerJob("claude_agent", taskId, app, cwd, prompt);
 
-        // check for agent run result via runner registry
-        // The runner will callback to /api/internal/runner/finished
-        // which triggers task completion in RunnerInternalController
-
-        // mark task as pending runner completion
         log.info("Agent run dispatched: task={} app={}", taskId, app.getId());
     }
 
@@ -123,21 +99,9 @@ public class ClaudeAgentService {
     }
 
     private void markTask(String taskId, String status) {
-        store.writeLock();
-        try {
-            store.getState().getTasks().stream()
-                    .filter(t -> t.getId().equals(taskId))
-                    .findFirst()
-                    .ifPresent(t -> {
-                        t.setStatus(status);
-                        if ("completed".equals(status) || "failed".equals(status)) {
-                            t.setCompletedAt(id.now());
-                        }
-                    });
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
+        String completedAt = ("completed".equals(status) || "failed".equals(status))
+                ? id.now() : null;
+        store.updateTaskStatus(taskId, status, completedAt);
     }
 
     private String buildAgentPrompt(AgentRunRequest input, App app) {

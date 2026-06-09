@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.Map;
 
 @Slf4j
@@ -95,20 +96,9 @@ public class RunnerInternalController {
     }
 
     private void markTask(String taskId, String status) {
-        store.writeLock();
-        try {
-            store.getState().getTasks().stream()
-                    .filter(t -> t.getId().equals(taskId))
-                    .findFirst()
-                    .ifPresent(t -> {
-                        t.setStatus(status);
-                        if ("completed".equals(status) || "failed".equals(status)) {
-                            t.setCompletedAt(java.time.Instant.now().toString());
-                        }
-                    });
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
+        String completedAt = ("completed".equals(status) || "failed".equals(status))
+                ? Instant.now().toString() : null;
+        store.updateTaskStatus(taskId, status, completedAt);
     }
 }
+

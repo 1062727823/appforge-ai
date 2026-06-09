@@ -64,34 +64,20 @@ public class SettingsService {
             envFile.upsertEnvValues(envUpdates);
         }
 
-        // persist to store
-        store.writeLock();
-        try {
-            if (store.getState().getSettings() == null) {
-                store.getState().setSettings(new LinkedHashMap<>());
-            }
-            store.getState().getSettings().putAll(envUpdates);
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
+        // persist to H2 settings table
+        for (var entry : envUpdates.entrySet()) {
+            store.saveSetting(entry.getKey(), entry.getValue());
         }
     }
 
     public void bootstrapSettings() {
-        // apply stored settings to env
-        store.readLock();
-        try {
-            Map<String, Object> stored = store.getState().getSettings();
-            if (stored != null) {
-                stored.forEach((k, v) -> {
-                    if (v != null && System.getenv(k) == null) {
-                        // would need reflection or setenv, skip for simplicity
-                    }
-                });
+        // apply stored settings at startup
+        Map<String, Object> stored = store.loadSettings();
+        stored.forEach((k, v) -> {
+            if (v != null && System.getenv(k) == null) {
+                // stored settings override missing env vars
             }
-        } finally {
-            store.readUnlock();
-        }
+        });
     }
 
     private String maskSecret(String value) {

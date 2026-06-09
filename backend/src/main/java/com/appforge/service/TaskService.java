@@ -25,14 +25,7 @@ public class TaskService {
     private final Set<String> cancelledTasks = ConcurrentHashMap.newKeySet();
 
     public Optional<Task> findTask(String taskId) {
-        store.readLock();
-        try {
-            return store.getState().getTasks().stream()
-                    .filter(t -> t.getId().equals(taskId))
-                    .findFirst();
-        } finally {
-            store.readUnlock();
-        }
+        return store.findTask(taskId);
     }
 
     public void cancelTask(String taskId) {
@@ -45,28 +38,21 @@ public class TaskService {
     }
 
     public Task startWorkspaceSync(String appId, boolean force) {
-        store.readLock();
-        try {
-            App app = store.getState().getApps().stream()
-                    .filter(a -> a.getId().equals(appId))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("App not found: " + appId));
+        App app = store.findApp(appId)
+                .orElseThrow(() -> new IllegalArgumentException("App not found: " + appId));
 
-            if (!force && "ready".equals(app.getStatus())) {
-                return null; // skip - already ready
-            }
+        if (!force && "ready".equals(app.getStatus())) {
+            return null; // skip - already ready
+        }
 
-            // check for existing running sync task
-            boolean hasRunning = store.getState().getTasks().stream()
-                    .anyMatch(t -> t.getAppId().equals(appId) && "running".equals(t.getStatus())
-                            && ("create_app".equals(t.getType()) || "workspace_sync".equals(t.getType())));
-            if (hasRunning) {
-                return store.getState().getTasks().stream()
-                        .filter(t -> t.getAppId().equals(appId) && "running".equals(t.getStatus()))
-                        .findFirst().orElse(null);
-            }
-        } finally {
-            store.readUnlock();
+        // check for existing running sync task
+        boolean hasRunning = store.listTasksByAppId(appId).stream()
+                .anyMatch(t -> "running".equals(t.getStatus())
+                        && ("create_app".equals(t.getType()) || "workspace_sync".equals(t.getType())));
+        if (hasRunning) {
+            return store.listTasksByAppId(appId).stream()
+                    .filter(t -> "running".equals(t.getStatus()))
+                    .findFirst().orElse(null);
         }
 
         Task task = Task.builder()
@@ -79,14 +65,7 @@ public class TaskService {
                 .completedAt(null)
                 .build();
 
-        store.writeLock();
-        try {
-            store.getState().getTasks().add(task);
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
-
+        store.insertTask(task);
         runGitWorkspaceTask(task.getId(), appId, "Syncing workspace on editor entry");
         return task;
     }
@@ -99,12 +78,7 @@ public class TaskService {
     public void runGitWorkspaceTask(String taskId, String appId, String introMessage) {
         if (isTaskCancelled(taskId)) return;
 
-        store.readLock();
-        App app = store.getState().getApps().stream()
-                .filter(a -> a.getId().equals(appId))
-                .findFirst().orElse(null);
-        store.readUnlock();
-
+        App app = store.findApp(appId).orElse(null);
         if (app == null) {
             taskEventService.pushTaskEvent(taskId, "task_failed", Map.of("message", "App not found"));
             markTask(taskId, "failed");
@@ -133,18 +107,9 @@ public class TaskService {
                             Map.of("command", command, "output", output)));
 
             // mark app ready
-            store.writeLock();
-            try {
-                store.getState().getApps().stream()
-                        .filter(a -> a.getId().equals(appId))
-                        .findFirst().ifPresent(a -> {
-                            a.setStatus("ready");
-                            a.setUpdatedAt(id.now());
-                        });
-                store.saveStore();
-            } finally {
-                store.writeUnlock();
-            }
+            app.setStatus("ready");
+            app.setUpdatedAt(id.now());
+            store.updateApp(app);
 
             markTask(taskId, "completed");
             String msg;
@@ -167,20 +132,8 @@ public class TaskService {
     }
 
     private void markTask(String taskId, String status) {
-        store.writeLock();
-        try {
-            store.getState().getTasks().stream()
-                    .filter(t -> t.getId().equals(taskId))
-                    .findFirst()
-                    .ifPresent(t -> {
-                        t.setStatus(status);
-                        if ("completed".equals(status) || "failed".equals(status)) {
-                            t.setCompletedAt(id.now());
-                        }
-                    });
-            store.saveStore();
-        } finally {
-            store.writeUnlock();
-        }
+        String completedAt = ("completed".equals(status) || "failed".equals(status))
+                ? id.now() : null;
+        store.updateTaskStatus(taskId, status, completedAt);
     }
 }
