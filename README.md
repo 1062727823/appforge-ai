@@ -8,9 +8,11 @@ AI 驱动的低代码平台 —— 通过 Claude 智能体创建、编辑、部�
 浏览器 ──→ nginx(:4173) ──┬── /api/* ──────────→ Spring Boot API (Java 17)
                           └── /ide/* ──────────→ code-server (Web IDE)
                                                     │
+                          Spring Boot ──TCP:9092──→ H2 Database（独立容器）
+                           │
                           Spring Boot ──HTTP──→ Agent Runner (Node.js)
-                           │                        │
-                     H2 数据库                 Claude Agent SDK
+                                                    │
+                                              Claude Agent SDK
                                                     │
                                               Anthropic API
 
@@ -28,7 +30,7 @@ appforge-ai/
 │       ├── controller/        # App, Task, Run, Deploy, Settings
 │       ├── model/             # DTO 和状态模型
 │       ├── service/           # 业务逻辑（14 个服务）
-│       └── store/             # H2 嵌入式数据库持久化
+│       └── store/             # H2 数据库持久化（服务器模式，独立容器）
 ├── frontend/                  # React 19 + Vite
 ├── agent-runner/              # Node.js worker（Claude Agent SDK）
 │   └── src/
@@ -37,9 +39,13 @@ appforge-ai/
 │       └── jobs/              # claudeAgentJob, gitSyncJob
 ├── shared/                    # 共享 JS 工具（GitLab 地址校验）
 ├── docker/                    # Dockerfiles + nginx 配置
-│   ├── nginx/                 # nginx 反向代理配置
-├── docker-compose.yml         # 完整部署（5 个服务）
-├── docker-compose.dev.yml     # 开发模式（仅基础设施 + nginx）
+│   ├── api.Dockerfile         # Spring Boot API 镜像
+│   ├── agent-runner.Dockerfile
+│   ├── code-server.Dockerfile
+│   ├── h2.Dockerfile          # H2 数据库独立镜像（服务器模式）
+│   └── nginx/                 # nginx 反向代理配置
+├── docker-compose.yml         # 完整部署（6 个服务：h2, api, agent-runner, code-server, nginx）
+├── docker-compose.dev.yml     # 开发模式（h2, agent-runner, code-server）
 └── .env.example               # 环境变量模板
 ```
 
@@ -65,13 +71,13 @@ appforge-ai/
 
 ### 方式一：完整 Docker（推荐，一键启动）
 
-4 个服务全部在 Docker 容器中运行，无需安装 Java/Node.js。
+5 个服务全部在 Docker 容器中运行，无需安装 Java/Node.js。H2 数据库以独立容器运行，通过 TCP 连接。
 
 ```bash
 # 1. 配置环境变量
 cp .env.example .env
 # 编辑 .env，填入：
-#   ANTHROPIC_API_KEY=sk-xxx
+#   DEEPSEEK_API_KEY=sk-xxx
 #   （其他变量保持默认即可）
 
 # 2. 构建并启动
@@ -80,15 +86,16 @@ docker compose up -d
 
 # 3. 验证
 docker ps
-# 应看到 4 个容器：nginx, api, agent-runner, code-server
+# 应看到 5 个容器：h2, nginx, api, agent-runner, code-server
 ```
 
 访问地址：**`http://127.0.0.1:4173`**
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
+| H2 Database | 9092（内部）, 8082（内部） | H2 数据库服务器模式，TCP 连接 + Web 控制台 |
 | nginx | 4173 | 统一入口，反向代理到 API / IDE |
-| API | 4173（内部） | Spring Boot 后端 + 前端 SPA |
+| API | 4173（内部） | Spring Boot 后端 + 前端 SPA，通过 `h2:9092` 连接数据库 |
 | Agent Runner | 8080（内部） | AI 任务执行器 |
 | code-server | 8080（内部） | Web IDE（浏览器版 VS Code） |
 
@@ -96,25 +103,22 @@ docker ps
 
 ### 方式二：混合开发（IDE 调前后端 + Docker 跑基础设施）
 
-前端和后端在 IDEA 中运行方便调试，agent-runner、code-server 在 Docker 中运行。
+前端和后端在 IDEA 中运行方便调试，H2、nginx、agent-runner、code-server 在 Docker 中运行。
 
 ```bash
-# 1. 配置 API Key（在 backend/src/main/resources/application.yml 中已配置）
-#    deepseek-api-key: sk-xxx
-
-# 2. 创建工作区目录
+# 1. 创建工作区目录
 mkdir -p storage/appforge/workspaces
 
-# 3. 构建并启动基础设施容器
-docker compose -f docker-compose.dev.yml build
-docker compose -f docker-compose.dev.yml up -d
+# 2. 构建并启动基础设施容器
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# 4. 验证
+# 3. 验证
 docker ps
-# 应看到 3 个容器：nginx, agent-runner, code-server
+# 应看到 4 个容器：h2, nginx, agent-runner, code-server
 ```
 
-**启动后端**（IDEA）：直接运行 `AppForgeApplication`，无需额外 VM 参数。
+**启动后端**（IDEA）：直接运行 `AppForgeApplication`，无需额外 VM 参数。`application.yml` 中 `H2_HOST` 默认为 `localhost`，自动连接 Docker 暴露的 `localhost:9092`。
 
 **启动前端：**
 ```bash
@@ -123,71 +127,45 @@ npm install
 npm run dev
 ```
 
-访问地址：**`http://127.0.0.1:5173`**
+访问地址：**`http://127.0.0.1:4173`**（nginx 统一入口，代理 /api/ 和 /ide/）
 
 | 服务 | 运行位置 | 端口 |
 |------|----------|------|
+| H2 Database | Docker | 9092（JDBC）, 8082（Web 控制台） |
 | nginx | Docker | 4173（统一入口） |
-| 前端（Vite） | Windows | 5173 |
+| 前端（Vite） | Windows | 5173（独立开发时使用） |
 | 后端（Spring Boot） | IDEA | 8181 |
 | Agent Runner | Docker | 8080 |
-| code-server | Docker | 8080（通过 nginx /ide/ 代理） |
+| code-server | Docker | 通过 nginx /ide/ 代理访问 |
+
+> **开发模式说明：** `docker-compose.dev.yml` 会将 `api` 设为 `prod` profile，开发时不启动。nginx 的 `/api/` 代理到 `host.docker.internal:8181`（宿主机后端），`/ide/` 代理到 code-server。
 
 ---
 
-### 方式三：最小化（无 Docker，仅代码生成）
-
-不需要 Docker，仅使用 AI 生成代码功能。生成的代码在 `storage/appforge/workspaces/` 目录下，可用本地 VS Code 打开。
-
-```bash
-# 终端 1：Agent Runner
-cd agent-runner
-npm install
-$env:CALLBACK_URL="http://127.0.0.1:4173"
-$env:CALLBACK_TOKEN="dev-runner-token"
-$env:RUNNER_PORT="8080"
-node --inspect src/worker.js
-
-# 终端 2：前端
-cd frontend
-npm install
-npm run dev
-```
-
-**启动后端**（IDEA）：添加 VM 参数 `-Danthropic-api-key=sk-xxx`
-
-访问地址：**`http://127.0.0.1:5173`**
-
-| 功能 | 可用 |
-|------|:--:|
-| 应用管理（增删改查） | 是 |
-| AI 生成代码 | 是 |
-| Web IDE（code-server 内嵌） | 否 |
-| 运行 / 预览应用 | 否 |
-| 生产部署 | 否 |
-
----
 
 ## Docker 常用命令
 
 ```bash
 # === 完整部署 ===
-docker compose build                # 构建全部 4 个镜像
+docker compose build                # 构建全部 5 个镜像
 docker compose up -d                # 后台启动全部服务
 docker compose down                 # 停止全部服务
 docker compose logs -f              # 查看全部日志
 docker compose logs -f api          # 查看指定服务日志
+docker compose logs -f h2           # 查看 H2 数据库日志
 docker compose restart api          # 重启指定服务
-docker compose down -v              # 停止并删除数据卷
+docker compose down -v              # 停止并删除数据卷（含数据库数据）
 
-# === 开发基础设施 ===
-docker compose -f docker-compose.dev.yml build               # 构建基础设施镜像
-docker compose -f docker-compose.dev.yml up -d               # 启动基础设施
-docker compose -f docker-compose.dev.yml down                # 停止基础设施
-docker compose -f docker-compose.dev.yml logs -f agent-runner # agent-runner 日志
-docker compose -f docker-compose.dev.yml logs -f code-server  # code-server 日志
-docker compose -f docker-compose.dev.yml restart code-server  # 重启 code-server
-docker compose -f docker-compose.dev.yml build --no-cache    # 无缓存完整重建
+# === 开发基础设施（H2 + nginx + agent-runner + code-server）===
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build               # 构建基础设施镜像
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d               # 启动全部基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d h2            # 仅启动 H2 数据库
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down                # 停止基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f h2          # H2 日志
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f agent-runner # agent-runner 日志
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f code-server  # code-server 日志
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart h2           # 重启 H2
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache    # 无缓存完整重建
 
 # === 故障排查 ===
 docker ps                          # 查看运行中的容器

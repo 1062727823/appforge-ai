@@ -1,5 +1,28 @@
 # 开发环境：仅启动基础设施服务，前端和后端在 IDE 中运行
 services:
+  h2:
+    build:
+      context: .
+      dockerfile: docker/h2.Dockerfile
+    image: appforge/h2:latest
+    ports:
+      - "9092:9092"
+      - "8082:8082"
+    environment:
+      H2_DATA_DIR: /opt/h2/data
+    volumes:
+      - h2-data:/opt/h2/data
+    networks:
+      - appforge-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   # 覆盖 api —— 开发时不启动
   api:
     profiles:
@@ -86,3 +109,7 @@ networks:
     name: appforge-net
   appforge-runtime:
     name: appforge-runtime
+
+volumes:
+  h2-data:
+    name: h2-data

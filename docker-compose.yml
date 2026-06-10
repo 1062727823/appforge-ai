@@ -1,4 +1,23 @@
 services:
+  h2:
+    build:
+      context: .
+      dockerfile: docker/h2.Dockerfile
+    image: appforge/h2:latest
+    environment:
+      H2_DATA_DIR: /opt/h2/data
+    volumes:
+      - h2-data:/opt/h2/data
+    networks:
+      - appforge-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -30,6 +49,7 @@ services:
       RUN_IDLE_MS: ${RUN_IDLE_MS:-1800000}
       RUN_IDLE_SWEEP_MS: ${RUN_IDLE_SWEEP_MS:-60000}
       APPFORGE_ENV_FILE: /app/.env
+      H2_HOST: h2
     volumes:
       - appforge-data:/data/appforge
       - ./.env:/app/.env:ro
@@ -39,6 +59,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
+      h2:
+        condition: service_healthy
       agent-runner:
         condition: service_healthy
       code-server:
@@ -105,7 +127,6 @@ services:
     networks:
       - appforge-net
     depends_on:
-      - api
       - code-server
     restart: unless-stopped
 
@@ -118,3 +139,5 @@ networks:
 volumes:
   appforge-data:
     name: appforge-data
+  h2-data:
+    name: h2-data
